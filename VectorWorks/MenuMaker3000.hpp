@@ -187,8 +187,7 @@ namespace VectorWorks::MenuMaker {
         pages = GetMenuDefinition();
         CreateHandCollider();
 
-        //Heres how you setup the BASE buttons.
-        // You can probably just manually set them yourself up
+        // Paste in your method that you copied here, just replace the whole method.
 
         staticButtons = {
                 { GameObject::Find("PageLeft"),  [this] { PreviousPage(); } },
