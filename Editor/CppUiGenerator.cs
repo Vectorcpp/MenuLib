@@ -80,7 +80,7 @@ public class CppUiCodeGenerator
         }
         else if (go.GetComponent<Text>() || go.GetComponent<Image>())
         {
-            sb.AppendLine($"{indent}GameObject* {cppVar} = new GameObject();");
+            sb.AppendLine($"{indent}GameObject* {cppVar} = (GameObject*)Gameobject::GetClass().CreateNewObjectParameters();");
             sb.AppendLine($"{indent}{cppVar}->SetName(\"{go.name}\");");
             sb.AppendLine($"{indent}{cppVar}->AddComponent(CanvasRenderer::GetType());");
         }
