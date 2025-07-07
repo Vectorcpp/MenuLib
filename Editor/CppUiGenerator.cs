@@ -1,4 +1,3 @@
-// Created by Vector_cpp Have fun!
 using UnityEngine;
 using UnityEditor;
 using UnityEngine.UI;
@@ -8,7 +7,7 @@ using System.Collections.Generic;
 
 public class CppUiCodeGenerator
 {
-    private const string version = "v1.1";
+    private const string version = "v1.4-pre";
 
     [MenuItem("Tools/C++ Converter for RootObjects", true)]
     private static bool ValidateGenerateCode() => Selection.gameObjects.Length > 0;
@@ -39,30 +38,30 @@ public class CppUiCodeGenerator
         sb.AppendLine();
 
         if (buttons.Count > 0)
-            sb.AppendLine("    buttonObjects = { " + string.Join(", ", buttons) + " };");
+            sb.AppendLine("    buttonObjects = { " + string.Join(", ", buttons) + " };\n");
 
         if (buttonTexts.Count > 0)
-            sb.AppendLine("    buttonTexts = { " + string.Join(", ", buttonTexts) + " };");
+            sb.AppendLine("    buttonTexts = { " + string.Join(", ", buttonTexts) + " };\n");
 
         if (!string.IsNullOrEmpty(titleTextVar))
-            sb.AppendLine($"    titleText = {titleTextVar};");
+            sb.AppendLine($"    titleText = {titleTextVar};\n");
 
         sb.AppendLine("    pages = GetMenuDefinition();");
-        sb.AppendLine("    CreateHandCollider();");
-        sb.AppendLine();
+        sb.AppendLine("    CreateHandCollider();\n");
+        sb.AppendLine("    // ADD YOUR OWN PAGE NAMES!");
         sb.AppendLine("    staticButtons = {");
         sb.AppendLine("        { GameObject::Find(\"PageLeft\"),  [this] { PreviousPage(); } },");
         sb.AppendLine("        { GameObject::Find(\"PageRight\"), [this] { NextPage(); } },");
         sb.AppendLine("        { GameObject::Find(\"Disconnect\"), MenuActions::Disconnect },");
         sb.AppendLine("        { GameObject::Find(\"Discord\"),    MenuActions::OpenDiscord }");
-        sb.AppendLine("    };");
-        sb.AppendLine();
+        sb.AppendLine("    };\n");
+
         sb.AppendLine("    if (!pages.empty())");
         sb.AppendLine("        LoadPage(currentPage);");
         sb.AppendLine("}");
 
         EditorGUIUtility.systemCopyBuffer = sb.ToString();
-        EditorUtility.DisplayDialog("Success!", "C++ code copied to clipboard with button + text references.", "Nice!");
+        EditorUtility.DisplayDialog("Success!", "C++ code copied to clipboard with UI and 3D support.", "Nice!");
     }
 
     private static void ProcessTransform(Transform target, string parent, int indentLevel, StringBuilder sb, List<string> buttons, List<string> buttonTexts, ref string titleTextVar)
@@ -72,11 +71,32 @@ public class CppUiCodeGenerator
         string cppVar = Sanitize(go.name) + "_" + Mathf.Abs(go.GetInstanceID());
 
         sb.AppendLine($"{indent}// --- {go.name} ---");
-        sb.AppendLine($"{indent}GameObject* {cppVar} = GameObject::CreatePrimitive(PrimitiveType::Cube);");
-        sb.AppendLine($"{indent}{cppVar}->SetName(\"{go.name}\");");
 
-        if (go.layer != 0)
-            sb.AppendLine($"{indent}{cppVar}->SetLayer({go.layer});");
+        if (go.GetComponent<Canvas>())
+        {
+            sb.AppendLine($"{indent}GameObject* {cppVar} = UI::CreateCanvas();");
+            sb.AppendLine($"{indent}{cppVar}->SetName(\"{go.name}\");");
+            sb.AppendLine($"{indent}((Canvas*){cppVar}->GetComponent(Canvas::GetType()))->SetRenderMode(RenderMode::WorldSpace);");
+        }
+        else if (go.GetComponent<Text>() || go.GetComponent<Image>())
+        {
+            sb.AppendLine($"{indent}GameObject* {cppVar} = new GameObject();");
+            sb.AppendLine($"{indent}{cppVar}->SetName(\"{go.name}\");");
+            sb.AppendLine($"{indent}{cppVar}->AddComponent(CanvasRenderer::GetType());");
+        }
+        else
+        {
+            if (go.GetComponent<Renderer>())
+            {
+                sb.AppendLine($"{indent}GameObject* {cppVar} = GameObject::CreatePrimitive(PrimitiveType::Cube);");
+                sb.AppendLine($"{indent}{cppVar}->SetName(\"{go.name}\");");
+            }
+            else
+            {
+                sb.AppendLine($"{indent}GameObject* {cppVar} = new GameObject();");
+                sb.AppendLine($"{indent}{cppVar}->SetName(\"{go.name}\");");
+            }
+        }
 
         sb.AppendLine($"{indent}auto {cppVar}_transform = {cppVar}->GetTransform();");
         sb.AppendLine($"{indent}{cppVar}_transform->SetParent({parent}, false);");
@@ -87,6 +107,10 @@ public class CppUiCodeGenerator
         RectTransform rt = go.GetComponent<RectTransform>();
         if (rt)
             sb.AppendLine($"{indent}((RectTransform*){cppVar}_transform)->SetSizeDelta({ToVec2(rt.sizeDelta)});");
+
+        var renderer = go.GetComponent<Renderer>();
+        if (renderer && renderer.sharedMaterial != null)
+            sb.AppendLine($"{indent}{cppVar}->GetRenderer()->SetMaterial(FindMaterialByName(\"{renderer.sharedMaterial.name}\"));");
 
         Text text = go.GetComponent<Text>();
         if (text)
@@ -115,6 +139,15 @@ public class CppUiCodeGenerator
                 titleTextVar = textVar;
         }
 
+        Image image = go.GetComponent<Image>();
+        if (image)
+        {
+            sb.AppendLine($"{indent}auto img = (Image*){cppVar}->AddComponent(Image::GetType());");
+            if (image.sprite != null)
+                sb.AppendLine($"{indent}img->SetSprite(FindSpriteByName(\"{image.sprite.name}\"));");
+            sb.AppendLine($"{indent}img->SetColor({ToColor(image.color)});");
+        }
+
         sb.AppendLine($"{indent}if (auto col = {cppVar}->GetComponent(Collider::GetType())) {{");
         sb.AppendLine($"{indent}    auto triggerField = col->GetClass().GetField(\"IsTrigger\");");
         sb.AppendLine($"{indent}    if (triggerField.IsValid()) {{");
@@ -140,5 +173,5 @@ public class CppUiCodeGenerator
     private static string ToVec2(Vector2 v) => $"Vector2({v.x}, {v.y})";
     private static string ToVec3(Vector3 v) => $"Vector3({v.x}, {v.y}, {v.z})";
     private static string ToQuat(Quaternion q) => $"Quaternion({q.x}, {q.y}, {q.z}, {q.w})";
-    private static string ToColor(Color c) => $"Color({c.r}, {c.g}, {c.b}, {c.a})";
+    private static string ToColor(Color c) => $"Color({c.r}f, {c.g}, {c.b}, {c.a}f";
 }
