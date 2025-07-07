@@ -1,91 +1,88 @@
-# MenuLib
+# menulib
 
-**MenuLib** allows you to build a UI menu inside Unity and convert it into customizable C++ code for use in your application or game.
-
-## ⚠️ WARNING
-- Im currently reworking most of the design for the CppUiGenerator, so if it doesnt work now just wait until i make it SO much more better.
-- This is currently also in a beta phase, so expect bugs
-
-## ✨ Features
-- Build menus visually using Unity
-- Export menu layouts to C++ with one click
-- Customize everything: layout, styles, button actions, and more
-- Unity-style C++ menu system using GameObject, Transform, and UI concepts
-- Currently Working on materials, (colors only)
+yo this is menulib. its a tool that lets u build a ui in unity and then spits it out as c++ code for your mod or whatever.
 
 ---
 
-## 🛠️ How to Use
+### ⚠️ warning
 
-1. **Install the Editor Script**
-   - Place the provided C# editor script (`CppUiCodeGenerator.cs`) into your Unity project's `Editor` folder.
-
-2. **Create Your Menu in Unity**
-   - Design your menu in the Unity Editor.
-   - Name your buttons: `ButtonTemp1`, `ButtonTemp2`, etc.
-   - Name the corresponding text objects: `ButtonText1`, `ButtonText2`, etc.
-
-3. **Select Your Menu Root Object**
-   - In the Unity Hierarchy, select the **root GameObject** of your menu.
-   - Also, a quick note your going to have do to the poistion and parent yourself, recommened as the RightPalm
-
-4. **Convert to C++**
-   - Go to the **Unity top menu bar**.
-   - Click on `Tools > C++ Converter for RootObjects` (menu name may vary depending on version).
-   - The C++ menu code will be generated and automatically copied to your clipboard.
-
-5. **Paste the Code**
-   - Open `MenuMaker3000.cpp` (or your designated C++ menu file).
-   - Paste the generated code inside the appropriate method (typically `BaseMenu::Initialize`).
-
-6. **Customize as Needed**
-   - You're ready to tweak the layout, button styles, logic, etc.
-   - Add logic for button pages, toggles, static buttons, and more.
+*   this is still super beta. expect bugs and shit to be broken.
+*   im currently redoing a lot of the generator code to make it way better, so if it doesnt work right now just chill and wait for an update.
 
 ---
 
-## ⚠️ Notes
+### ✨ features
 
-- **Button Logic Must Be Hardcoded:**
-  - The Unity-to-C++ converter only handles layout and naming.
-  - Button actions (e.g., `Fly`, `Disconnect`, `OpenDiscord`) must be hardcoded in C++ using `ButtonInfo`.
+*   build your menu visually in unity, no coding needed for the layout.
+*   one click exports the whole thing to c++ and copies it.
+*   the generated c++ code looks like unity's api (gameobject, transform etc) so it should feel familiar.
+*   converts components like text, images, and layout groups.
+*   it even handles basic materials, but just colors for now.
 
-- **Reference Code Provided:**
-  - Use the included C# and C++ code as a guide.
-  - Helpful classes like `BaseMenu`, `MenuButton`, and `StaticButton` are provided for flexibility.
-  - You can also look through my code for better readability.
+---
 
-- **Pages & Button Actions**
-  - Modify the `GetMenuDefinition()` function to define your custom pages and button behaviors.
-  - Example:
+### 🛠️ how to use
+
+1.  **install:**
+    *   toss the `CppUiCodeGenerator.cs` file into an `Editor` folder in your unity project.
+
+2.  **design:**
+    *   make your menu in the unity scene. name your buttons and text stuff that makes sense like `ButtonFly` and `ButtonFlyText`.
+
+3.  **select:**
+    *   in the hierarchy, click the main root gameobject for your menu.
+    *   quick note: you gotta set the position and parent yourself in the code. sticking it to the right hand palm is usually a good bet.
+
+4.  **convert:**
+    *   go up to the menu bar `Tools > C++ Converter for RootObjects`.
+    *   it'll generate the code and copy it to your clipboard automatically.
+
+5.  **paste:**
+    *   open your c++ file, probably `MenuMaker3000.cpp` or whatever u called it.
+    *   paste the code into the `BaseMenu::Initialize` function.
+
+6.  **customize:**
+    *   the tool only does the layout. you still have to code what the buttons actually do.
+
+---
+
+### ⚠️ notes
+
+*   **button logic is on you:**
+    *   the converter only handles the visual setup. you have to hardcode the actions (like `MenuActions::ToggleFly`) in c++ yourself.
+
+*   **use the examples:**
+    *   look at the c++ files i included. `BaseMenu` and the other classes show you how to set everything up.
+
+*   **pages & actions:**
+    *   edit the `GetMenuDefinition()` function to make your pages and hook up your button functions. looks like this:
     ```cpp
     {
-      "Base",
+      "Base", // Page name
       {
-        { "Fly", MenuActions::ToggleFly },
-        { "Speed Boost", nullptr },
+        { "Fly", MenuActions::ToggleFly }, // Button text and its C++ function
+        { "Speed Boost", nullptr }, // Button with no action yet
         { "Platforms", nullptr },
       }
     }
     ```
----
-
-## 🧠 Tips
-- You can use any GameObject layout you want—directory structure doesn't matter.
-- Font names like "Arial" are supported and default to built-in fonts.
-- Collider behavior (for button interaction) is also handled via Unity naming conventions.
 
 ---
 
-## ✅ Output Example
+### 🧠 tips
+*   ur gameobject hierarchy can be a total mess, the script doesnt care about folders.
+*   it knows what "arial" is and will use the builtin font for it.
+*   it sets up colliders on stuff so your buttons can be clicked.
 
-The generator produces code like this in C++:
+---
+
+### ✅ output example
+
+it'll spit out code that looks something like this:
 
 ```cpp
 GameObject* ButtonTemp1_123456 = GameObject::CreatePrimitive(PrimitiveType::Cube);
 ButtonTemp1_123456->SetName("ButtonTemp1");
 
 buttonObjects = { ButtonTemp1_123456, ButtonTemp2_654321 };
-buttonTexts = { ButtonText1_123456, ButtonText2_654321 };
-```
-
+buttonTexts = { ButtonText1_123456_text, ButtonText2_654321_text };
