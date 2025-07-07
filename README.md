@@ -7,6 +7,7 @@
 - Export menu layouts to C++ with one click
 - Customize everything: layout, styles, button actions, and more
 - Unity-style C++ menu system using GameObject, Transform, and UI concepts
+- Currently Working on materials, (colors only)
 
 ---
 
