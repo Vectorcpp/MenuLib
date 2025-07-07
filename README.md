@@ -23,6 +23,7 @@
 
 3. **Select Your Menu Root Object**
    - In the Unity Hierarchy, select the **root GameObject** of your menu.
+   - Also, a quick note your going to have do to the poistion and parent yourself, recommened as the RightPalm
 
 4. **Convert to C++**
    - Go to the **Unity top menu bar**.
