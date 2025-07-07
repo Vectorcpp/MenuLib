@@ -66,6 +66,7 @@ yo this is menulib. its a tool that lets u build a ui in unity and then spits it
       }
     }
     ```
+    *    edit the 'staticButtons', this is just a preview you can add your own gameobject defs, as the buttons!
 
 ---
 
