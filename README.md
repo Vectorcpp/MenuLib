@@ -2,6 +2,10 @@
 
 **MenuLib** allows you to build a UI menu inside Unity and convert it into customizable C++ code for use in your application or game.
 
+## ⚠️ NOTE
+- Im currently reworking most of the design for the CppUiGenerator, so if it doesnt work now just wait until i make it SO much more better.
+- This is currently also in a beta phase, so expect bugs
+
 ## ✨ Features
 - Build menus visually using Unity
 - Export menu layouts to C++ with one click
