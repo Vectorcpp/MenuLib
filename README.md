@@ -18,6 +18,7 @@ yo this is menulib. its a tool that lets u build a ui in unity and then spits it
 *   the generated c++ code looks like unity's api (gameobject, transform etc) so it should feel familiar.
 *   converts components like text, images, and layout groups.
 *   it even handles basic materials, but just colors for now.
+*   if wanted, you can toggle the box and you can just only do components, if you need it for another script or something like that.
 
 ---
 
