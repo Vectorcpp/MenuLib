@@ -55,7 +55,7 @@ namespace VectorWorks::MenuMaker {
         //Just some built in fields
 
         void SetColor(GameObject* obj, const Color& color);
-        void CreateHandCollider();
+        void CreateHandCollider(bool isLeftHand);
         void LoadPage(int index);
 
         GameObject* baseMenuObject = nullptr;
@@ -91,8 +91,8 @@ namespace VectorWorks::MenuMaker {
             renderer->GetMaterial()->SetColor(color);
     }
     // This creates a collider on the Left hand of the player.
-    void BaseMenu::CreateHandCollider() {
-        auto controller = GameObject::Find("LeftHand Controller");
+    void BaseMenu::CreateHandCollider(bool isLeftHand) {
+        auto controller = isLeftHand ? GameObject::Find("LeftHand Controller") : GameObject::Find("RightHand Controller");
         if (!controller) return;
 
         leftHandCollider = GameObject::CreatePrimitive(PrimitiveType::Sphere);
@@ -110,8 +110,6 @@ namespace VectorWorks::MenuMaker {
         }
 
         leftHandCollider->GetTransform()->SetParent(controller->GetTransform(), false);
-
-        GameObject::Destroy(leftHandCollider->GetComponent(MeshRenderer::GetType()));
     }
     void BaseMenu::LoadPage(int index) {
         if (pages.empty() || index < 0 || index >= pages.size()) return;
@@ -148,6 +146,7 @@ namespace VectorWorks::MenuMaker {
         currentPage = (currentPage - 1 + pages.size()) % pages.size();
         LoadPage(currentPage);
     }
+
     // IMPORTANT: This MUST be called apon a LateUpdate or a Regular Update
     void BaseMenu::Update() {
         if (!leftHandCollider) return;
@@ -183,12 +182,14 @@ namespace VectorWorks::MenuMaker {
             btn.wasPressedLastFrame = pressed;
         }
     }
+
+
+// Paste in your method that you copied here, just replace the whole method.
+
     void BaseMenu::Initialize(Transform* parent) {
         pages = GetMenuDefinition();
         CreateHandCollider();
-
-        // Paste in your method that you copied here, just replace the whole method.
-
+        
         staticButtons = {
                 { GameObject::Find("PageLeft"),  [this] { PreviousPage(); } },
                 { GameObject::Find("PageRight"), [this] { NextPage(); } },
