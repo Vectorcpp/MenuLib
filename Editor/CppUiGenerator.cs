@@ -77,12 +77,13 @@ public class CppUiCodeGenerator
             sb.AppendLine($"{indent}GameObject* {cppVar} = UI::CreateCanvas();");
             sb.AppendLine($"{indent}{cppVar}->SetName(\"{go.name}\");");
             sb.AppendLine($"{indent}((Canvas*){cppVar}->GetComponent(Canvas::GetType()))->SetRenderMode(RenderMode::WorldSpace);");
+            sb.AppendLine($"{indent}((Canvas*){cppVar}->GetComponent(Canvas::GetType()))->SetWorldCamera(Camera::GetMain());");
         }
         else if (go.GetComponent<Text>() || go.GetComponent<Image>())
         {
-            sb.AppendLine($"{indent}GameObject* {cppVar} = (GameObject*)Gameobject::GetClass().CreateNewObjectParameters();");
+            sb.AppendLine($"{indent}GameObject* {cppVar} = (GameObject*)GameObject::GetClass().CreateNewObjectParameters();");
             sb.AppendLine($"{indent}{cppVar}->SetName(\"{go.name}\");");
-            sb.AppendLine($"{indent}{cppVar}->AddComponent(CanvasRenderer::GetType());");
+            sb.AppendLine($"{indent}{cppVar}->AddComponent(Text::GetType());");
         }
         else
         {
@@ -93,7 +94,7 @@ public class CppUiCodeGenerator
             }
             else
             {
-                sb.AppendLine($"{indent}GameObject* {cppVar} = new GameObject();");
+                sb.AppendLine($"{indent}GameObject* {cppVar} = (GameObject*)GameObject::GetClass().CreateNewObjectParameters();");
                 sb.AppendLine($"{indent}{cppVar}->SetName(\"{go.name}\");");
             }
         }
@@ -110,7 +111,12 @@ public class CppUiCodeGenerator
 
         var renderer = go.GetComponent<Renderer>();
         if (renderer && renderer.sharedMaterial != null)
-            sb.AppendLine($"{indent}{cppVar}->GetRenderer()->SetMaterial(FindMaterialByName(\"{renderer.sharedMaterial.name}\"));");
+        {
+            sb.AppendLine($"");
+            sb.AppendLine($"{indent}Renderer* {cppVar}_renderer = reinterpret_cast<Renderer*>({cppVar}_renderer->GetComponent(Renderer::GetType()));");
+            sb.AppendLine($"{indent}{cppVar}_renderer->SetMaterial({cppVar}_renderer->GetMaterial());");
+        }
+            
 
         Text text = go.GetComponent<Text>();
         if (text)
@@ -121,7 +127,7 @@ public class CppUiCodeGenerator
             sb.AppendLine($"{indent}{textVar}->SetFontSize({text.fontSize});");
             sb.AppendLine($"{indent}{textVar}->SetAlignment(TextAnchor::{text.alignment});");
             sb.AppendLine($"{indent}{textVar}->SetFontStyle(FontStyle::{text.fontStyle});");
-            sb.AppendLine($"{indent}{textVar}->SetColor({ToColor(text.color)});");
+            sb.AppendLine($"{indent}{textVar}->SetColor({ToColor(text.color)}));");
 
             if (text.font != null)
             {
@@ -142,19 +148,21 @@ public class CppUiCodeGenerator
         Image image = go.GetComponent<Image>();
         if (image)
         {
-            sb.AppendLine($"{indent}auto img = (Image*){cppVar}->AddComponent(Image::GetType());");
-            if (image.sprite != null)
-                sb.AppendLine($"{indent}img->SetSprite(FindSpriteByName(\"{image.sprite.name}\"));");
-            sb.AppendLine($"{indent}img->SetColor({ToColor(image.color)});");
+            sb.AppendLine($"// Hey! quick heads up there is NO image's cause idk how to load assets it will just be a base gameobject for now");
+            sb.AppendLine($"{indent}GameObject* {cppVar}_image = (GameObject*)GameObject::GetClass().CreateNewObjectParameters();");
         }
 
-        sb.AppendLine($"{indent}if (auto col = {cppVar}->GetComponent(Collider::GetType())) {{");
-        sb.AppendLine($"{indent}    auto triggerField = col->GetClass().GetField(\"IsTrigger\");");
-        sb.AppendLine($"{indent}    if (triggerField.IsValid()) {{");
-        sb.AppendLine($"{indent}        triggerField.SetInstance(col);");
-        sb.AppendLine($"{indent}        *triggerField.cast<bool*>() = false;");
-        sb.AppendLine($"{indent}    }}");
-        sb.AppendLine($"{indent}}}");
+        if (go.GetComponent<BoxCollider>() || go.GetComponent<SphereCollider>() || go.GetComponent<MeshCollider>())
+        {
+            sb.AppendLine();
+            sb.AppendLine($"{indent}if (auto col = {cppVar}->GetComponent(Collider::GetType())) {{");
+            sb.AppendLine($"{indent}    auto triggerField = col->GetClass().GetField(\"IsTrigger\");");
+            sb.AppendLine($"{indent}    if (triggerField.IsValid()) {{");
+            sb.AppendLine($"{indent}        triggerField.SetInstance(col);");
+            sb.AppendLine($"{indent}        *triggerField.cast<bool*>() = false;");
+            sb.AppendLine($"{indent}    }}");
+            sb.AppendLine($"{indent}}}");
+        }
 
         if (go.name.ToLower().Contains("button"))
             buttons.Add(cppVar);
@@ -173,5 +181,5 @@ public class CppUiCodeGenerator
     private static string ToVec2(Vector2 v) => $"Vector2({v.x}, {v.y})";
     private static string ToVec3(Vector3 v) => $"Vector3({v.x}, {v.y}, {v.z})";
     private static string ToQuat(Quaternion q) => $"Quaternion({q.x}, {q.y}, {q.z}, {q.w})";
-    private static string ToColor(Color c) => $"Color({c.r}f, {c.g}, {c.b}, {c.a}f";
+    private static string ToColor(Color c) => $"Color({c.r}, {c.g}, {c.b}, {c.a})";
 }
