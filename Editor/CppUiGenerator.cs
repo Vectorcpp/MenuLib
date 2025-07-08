@@ -5,63 +5,117 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Collections.Generic;
 
-public class CppUiCodeGenerator
+public class CppUiCodeGeneratorWindow : EditorWindow
 {
-    private const string version = "v1.4-pre";
+    private Vector2 scroll;
+    private GameObject[] selectedObjects;
 
-    [MenuItem("Tools/C++ Converter for RootObjects", true)]
-    private static bool ValidateGenerateCode() => Selection.gameObjects.Length > 0;
+    private bool isOption1On = false;
 
-    [MenuItem("Tools/C++ Converter for RootObjects", false, 0)]
-    private static void GenerateCode()
+    [MenuItem("Window/Cpp UI Code Generator")]
+    public static void ShowWindow()
     {
-        GameObject[] selected = Selection.gameObjects;
-        if (selected.Length == 0)
+        GetWindow<CppUiCodeGeneratorWindow>("C++ UI Generator");
+    }
+
+    private void OnGUI()
+    {
+        GUILayout.Label("C++ UI Code Generator", EditorStyles.boldLabel);
+        GUILayout.Space(5);
+
+        if (GUILayout.Button("Refresh Selection"))
         {
-            EditorUtility.DisplayDialog("Error", "Select at least one GameObject.", "OK");
-            return;
+            selectedObjects = Selection.gameObjects;
         }
 
+        GUILayout.Space(15);
+
+        GUILayout.Label("---- Options (WIP) ----", EditorStyles.boldLabel);
+
+        GUIContent toggleOptions = new GUIContent(text:"Is this for the menu lib?");
+
+        isOption1On = GUILayout.Toggle(isOption1On, toggleOptions);
+
+        GUILayout.Space(5);
+
+        if (selectedObjects == null || selectedObjects.Length == 0)
+        {
+            EditorGUILayout.HelpBox("No GameObjects selected. Select root objects in the Hierarchy, then click 'Refresh Selection'.", MessageType.Warning);
+        }
+        else
+        {
+            GUILayout.Label($"Selected GameObjects ({selectedObjects.Length}):");
+            scroll = EditorGUILayout.BeginScrollView(scroll, GUILayout.Height(100));
+            foreach (var go in selectedObjects)
+                EditorGUILayout.LabelField(go.name);
+            EditorGUILayout.EndScrollView();
+        }
+
+        GUI.enabled = selectedObjects != null && selectedObjects.Length > 0;
+
+        if (GUILayout.Button("Generate C++ Code"))
+        {
+            GenerateCode(selectedObjects);
+        }
+
+        GUI.enabled = true;
+    }
+
+    private void GenerateCode(GameObject[] selected)
+    {
         var sb = new StringBuilder();
         var buttons = new List<string>();
         var buttonTexts = new List<string>();
         string titleTextVar = "";
 
-        sb.AppendLine("void BaseMenu::Initialize(Transform* parent) {");
-
-        foreach (var root in selected)
+        if (isOption1On)
         {
-            if (root != null)
-                ProcessTransform(root.transform, "parent", 1, sb, buttons, buttonTexts, ref titleTextVar);
+            sb.AppendLine("void BaseMenu::Initialize(Transform* parent) {");
+
+            foreach (var root in selected)
+            {
+                if (root != null)
+                    ProcessTransform(root.transform, "parent", 1, sb, buttons, buttonTexts, ref titleTextVar);
+            }
+
+            sb.AppendLine();
+
+            if (buttons.Count > 0)
+                sb.AppendLine("    buttonObjects = { " + string.Join(", ", buttons) + " };\n");
+
+            if (buttonTexts.Count > 0)
+                sb.AppendLine("    buttonTexts = { " + string.Join(", ", buttonTexts) + " };\n");
+
+            if (!string.IsNullOrEmpty(titleTextVar))
+                sb.AppendLine($"    titleText = {titleTextVar};\n");
+
+            sb.AppendLine("    pages = GetMenuDefinition();");
+            sb.AppendLine("    CreateHandCollider();\n");
+            sb.AppendLine("    // ADD YOUR OWN PAGE NAMES!");
+            sb.AppendLine("    staticButtons = {");
+            sb.AppendLine("        { GameObject::Find(\"PageLeft\"),  [this] { PreviousPage(); } },");
+            sb.AppendLine("        { GameObject::Find(\"PageRight\"), [this] { NextPage(); } },");
+            sb.AppendLine("        { GameObject::Find(\"Disconnect\"), MenuActions::Disconnect },");
+            sb.AppendLine("        { GameObject::Find(\"Discord\"),    MenuActions::OpenDiscord }");
+            sb.AppendLine("    };\n");
+
+            sb.AppendLine("    if (!pages.empty())");
+            sb.AppendLine("        LoadPage(currentPage);");
+            sb.AppendLine("}");
+
+            EditorGUIUtility.systemCopyBuffer = sb.ToString();
+            EditorUtility.DisplayDialog("Success!", "C++ code copied to clipboard.", "Nice!");
         }
+        else
+        {
+            foreach (var root in selected)
+            {
+                if (root != null)
+                    ProcessTransform(root.transform, "parent", 1, sb, buttons, buttonTexts, ref titleTextVar);
+            }
 
-        sb.AppendLine();
-
-        if (buttons.Count > 0)
-            sb.AppendLine("    buttonObjects = { " + string.Join(", ", buttons) + " };\n");
-
-        if (buttonTexts.Count > 0)
-            sb.AppendLine("    buttonTexts = { " + string.Join(", ", buttonTexts) + " };\n");
-
-        if (!string.IsNullOrEmpty(titleTextVar))
-            sb.AppendLine($"    titleText = {titleTextVar};\n");
-
-        sb.AppendLine("    pages = GetMenuDefinition();");
-        sb.AppendLine("    CreateHandCollider();\n");
-        sb.AppendLine("    // ADD YOUR OWN PAGE NAMES!");
-        sb.AppendLine("    staticButtons = {");
-        sb.AppendLine("        { GameObject::Find(\"PageLeft\"),  [this] { PreviousPage(); } },");
-        sb.AppendLine("        { GameObject::Find(\"PageRight\"), [this] { NextPage(); } },");
-        sb.AppendLine("        { GameObject::Find(\"Disconnect\"), MenuActions::Disconnect },");
-        sb.AppendLine("        { GameObject::Find(\"Discord\"),    MenuActions::OpenDiscord }");
-        sb.AppendLine("    };\n");
-
-        sb.AppendLine("    if (!pages.empty())");
-        sb.AppendLine("        LoadPage(currentPage);");
-        sb.AppendLine("}");
-
-        EditorGUIUtility.systemCopyBuffer = sb.ToString();
-        EditorUtility.DisplayDialog("Success!", "C++ code copied to clipboard with UI and 3D support.", "Nice!");
+            EditorUtility.DisplayDialog("Success!", "This only generated properties NOT the menu lib.", "Nice!");
+        }
     }
 
     private static void ProcessTransform(Transform target, string parent, int indentLevel, StringBuilder sb, List<string> buttons, List<string> buttonTexts, ref string titleTextVar)
@@ -74,8 +128,9 @@ public class CppUiCodeGenerator
 
         if (go.GetComponent<Canvas>())
         {
-            sb.AppendLine($"{indent}GameObject* {cppVar} = UI::CreateCanvas();");
+            sb.AppendLine($"{indent}GameObject* {cppVar} = (GameObject*)GameObject::GetClass().CreateNewObjectParameters();");
             sb.AppendLine($"{indent}{cppVar}->SetName(\"{go.name}\");");
+            sb.AppendLine($"{indent}{cppVar}->AddComponent(Canvas::GetType());");
             sb.AppendLine($"{indent}((Canvas*){cppVar}->GetComponent(Canvas::GetType()))->SetRenderMode(RenderMode::WorldSpace);");
             sb.AppendLine($"{indent}((Canvas*){cppVar}->GetComponent(Canvas::GetType()))->SetWorldCamera(Camera::GetMain());");
         }
@@ -116,7 +171,7 @@ public class CppUiCodeGenerator
             sb.AppendLine($"{indent}Renderer* {cppVar}_renderer = reinterpret_cast<Renderer*>({cppVar}_renderer->GetComponent(Renderer::GetType()));");
             sb.AppendLine($"{indent}{cppVar}_renderer->SetMaterial({cppVar}_renderer->GetMaterial());");
         }
-            
+
 
         Text text = go.GetComponent<Text>();
         if (text)
@@ -127,7 +182,7 @@ public class CppUiCodeGenerator
             sb.AppendLine($"{indent}{textVar}->SetFontSize({text.fontSize});");
             sb.AppendLine($"{indent}{textVar}->SetAlignment(TextAnchor::{text.alignment});");
             sb.AppendLine($"{indent}{textVar}->SetFontStyle(FontStyle::{text.fontStyle});");
-            sb.AppendLine($"{indent}{textVar}->SetColor({ToColor(text.color)}));");
+            sb.AppendLine($"{indent}{textVar}->SetColor({ToColor(text.color)});");
 
             if (text.font != null)
             {
