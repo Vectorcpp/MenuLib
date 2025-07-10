@@ -24,7 +24,7 @@ namespace MenuActions {
         }
 
         //Used for notications or some sorts.
-        bool isT = isToggled ? "On" : "False";
+        std::string isT = isToggled ? "On" : "False";
     }
 
     //These are the base buttons of the menu
